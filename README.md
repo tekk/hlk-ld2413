@@ -1,6 +1,6 @@
 # HLK-LD2413 Water Level Sensor Library
 
-![HLK-LD2413](https://ae01.alicdn.com/kf/S7f8b9e6a9f4c4a6a8b9e6a9f4c4a6a8.jpg)
+![HLK-LD2413](resources/module.png)
 
 Professional PlatformIO/Arduino library for the Hi-Link HLK-LD2413 24GHz mmWave Water Level Sensor.
 
