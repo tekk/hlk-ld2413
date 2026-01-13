@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        board: [esp32dev, nodemcuv2, uno]
+        board: [esp32dev, nodemcuv2, uno, cubecell_board]
     
     steps:
       - uses: actions/checkout@v3
