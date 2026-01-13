@@ -2,7 +2,7 @@
 
 ![HLK-LD2413](resources/module.png)
 
-Professional PlatformIO/Arduino library for the Hi-Link HLK-LD2413 24GHz mmWave Water Level Sensor.
+PlatformIO/Arduino library for the Hi-Link HLK-LD2413 24GHz mmWave Water Level Sensor.
 
 ## Features
 - **Multi-Platform Support**: ESP32, ESP8266, Heltec CubeCell, Arduino.
@@ -45,15 +45,3 @@ void loop() {
 }
 ```
 
-## Wiring
-| Sensor Pin | ESP32 | ESP8266 | Arduino |
-|------------|-------|---------|---------|
-| VCC        | 3.3V  | 3.3V    | 3.3V    |
-| GND        | GND   | GND     | GND     |
-| TX         | RX    | RX      | RX      |
-| RX         | TX    | TX      | TX      |
-
-> **Note**: The sensor runs on 3.3V logic. If using a 5V Arduino, use a level shifter.
-
-## CI/CD
-This project uses GitHub Actions to verify compilation on every push and tag.
