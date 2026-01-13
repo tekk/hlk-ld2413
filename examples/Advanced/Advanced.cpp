@@ -7,6 +7,12 @@
 #define RX_PIN 16
 #define TX_PIN 17
 #define SENSOR_SERIAL Serial1
+#elif defined(ESP8266)
+#include <SoftwareSerial.h>
+SoftwareSerial SENSOR_SERIAL(D7, D8); // RX, TX
+#elif defined(ARDUINO_AVR_UNO) || defined(__AVR_ATmega328P__)
+#include <SoftwareSerial.h>
+SoftwareSerial SENSOR_SERIAL(2, 3); // RX, TX
 #else
 #define SENSOR_SERIAL Serial1
 #endif

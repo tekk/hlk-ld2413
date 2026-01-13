@@ -226,7 +226,6 @@ bool HLK_LD2413::_waitForAck(uint16_t cmd, uint16_t timeoutMs, uint8_t *outData,
                              uint16_t *outLen) {
   unsigned long start = millis();
   uint8_t buf[256];
-  uint16_t idx = 0;
 
   // Look for FD (header start)
   // Then parse full frame...
