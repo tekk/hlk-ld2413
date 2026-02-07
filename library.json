@@ -1,22 +1,29 @@
 {
   "name": "HLK-LD2413",
-  "version": "1.0.0",
-  "description": "Library for the Hi-Link HLK-LD2413 Water/Liquid Level mmWave Sensor. Supports ESP8266, ESP32, Heltec Cubecell, and Arduino.",
-  "keywords": "hlk, ld2413, radar, water level, mmwave, sensor, fluid",
+  "version": "1.0.1",
+  "description": "Library for the Hi-Link HLK-LD2413 Water/Liquid Level mmWave Sensor. Supports ESP8266, ESP32, Heltec Cubecell, STM32, Arduino, and other boards.",
+  "keywords": "hlk, ld2413, radar, water level, mmwave, sensor, fluid, hi-link, hilink, microwave",
   "repository": {
     "type": "git",
     "url": "https://github.com/tekk/hlk-ld2413"
   },
   "authors": [
     {
-      "name": "Tekk (OM7TEK)",
+      "name": "Peter \"Tekk\" Javorsky (OM7TEK)",
       "email": "tekk.sk@gmail.com",
       "maintainer": true
     }
   ],
   "license": "MIT",
   "frameworks": "*",
-  "platforms": "*",
+  "platforms": [
+    "espressif8266",
+    "espressif32",
+    "heltec-cubecell",
+    "atmelavr",
+    "ststm32",
+    "*"
+  ],
   "export": {
     "include": [
       "src/*",
