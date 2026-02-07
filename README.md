@@ -17,7 +17,7 @@ PlatformIO/Arduino library for the Hi-Link HLK-LD2413 24GHz mmWave Water Level S
 2. Add to `lib_deps`:
    ```ini
    lib_deps =
-       tekk/HLK-LD2413 @ ^1.0.0
+       tekk/HLK-LD2413 @ ^1.0.1
    ```
 
 ### Arduino IDE
@@ -44,4 +44,3 @@ void loop() {
     }
 }
 ```
-
