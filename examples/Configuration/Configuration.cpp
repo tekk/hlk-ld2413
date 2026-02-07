@@ -11,6 +11,8 @@ SoftwareSerial SENSOR_SERIAL(D7, D8);
 #elif defined(ARDUINO_AVR_UNO) || defined(__AVR_ATmega328P__)
 #include <SoftwareSerial.h>
 SoftwareSerial SENSOR_SERIAL(2, 3); // RX, TX
+#elif defined(ARDUINO_ARCH_STM32)
+HardwareSerial SENSOR_SERIAL(PA10, PA9);
 #else
 #define SENSOR_SERIAL Serial1
 #endif
