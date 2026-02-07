@@ -4,7 +4,6 @@
 
 [![PlatformIO Registry](https://badges.registry.platformio.org/packages/tekk/library/HLK-LD2413.svg)](https://registry.platformio.org/libraries/tekk/HLK-LD2413)
 [![Build Status](https://github.com/tekk/hlk-ld2413/actions/workflows/main.yml/badge.svg)](https://github.com/tekk/hlk-ld2413/actions/workflows/main.yml)
-![tekk/hovnokod](https://img.shields.io/badge/tekk-hovnokod-red)
 
 PlatformIO/Arduino library for the Hi-Link HLK-LD2413 24GHz mmWave Water Level Sensor.
 
@@ -21,7 +20,7 @@ PlatformIO/Arduino library for the Hi-Link HLK-LD2413 24GHz mmWave Water Level S
 2. Add to `lib_deps`:
    ```ini
    lib_deps =
-       tekk/HLK-LD2413 @ ^1.0.1
+       tekk/HLK-LD2413 @ ^1.0.2
    ```
 
 ### Arduino IDE
