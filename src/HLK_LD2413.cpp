@@ -14,7 +14,7 @@ static const uint16_t CMD_SET_PERIOD = 0x0071;
 static const uint16_t CMD_READ_PERIOD = 0x0070;
 static const uint16_t CMD_SET_MIN_DIST = 0x0074;
 static const uint16_t CMD_SET_MAX_DIST = 0x0075;
-static const uint16_t CMD_FACTORY_RESET = 0x00A2; // Common HLK reset
+static const uint16_t CMD_UPDATE_THRESHOLD = 0x0072;
 
 HLK_LD2413::HLK_LD2413(Stream *stream) {
   _serial = stream;
@@ -332,10 +332,12 @@ bool HLK_LD2413::endConfigMode() {
 }
 
 bool HLK_LD2413::setReportPeriod(uint16_t ms) {
-  if (ms < 50)
-    ms = 50;
-  if (ms > 1000)
-    ms = 1000;
+  if (!_isConfigMode)
+    return false;
+
+  if (ms < 50 || ms > 1000)
+    return false;
+
   // According to docs, value is 2 bytes
   uint8_t data[2];
   data[0] = ms & 0xFF;
@@ -343,7 +345,35 @@ bool HLK_LD2413::setReportPeriod(uint16_t ms) {
   return _sendCommand(CMD_SET_PERIOD, data, 2);
 }
 
+int16_t HLK_LD2413::readReportPeriod() {
+  if (!_isConfigMode)
+    return -1;
+
+  uint8_t response[16];
+  uint16_t responseLen = sizeof(response);
+
+  bool success = _sendCommand(CMD_READ_PERIOD, nullptr, 0, 1000,
+                              response, &responseLen);
+
+  if (!success || responseLen != 6)
+    return -1;
+
+  uint32_t period =
+      (uint32_t)response[2] |
+      ((uint32_t)response[3] << 8) |
+      ((uint32_t)response[4] << 16) |
+      ((uint32_t)response[5] << 24);
+
+  if (period > 32767)
+    return -1;
+
+  return (int16_t)period;
+}
+
 bool HLK_LD2413::setMinDistance(uint16_t mm) {
+  if (!_isConfigMode || mm < 150 || mm > 10500)
+    return false;
+
   uint8_t data[2];
   data[0] = mm & 0xFF;
   data[1] = (mm >> 8) & 0xFF;
@@ -351,14 +381,41 @@ bool HLK_LD2413::setMinDistance(uint16_t mm) {
 }
 
 bool HLK_LD2413::setMaxDistance(uint16_t mm) {
+  if (!_isConfigMode || mm < 150 || mm > 10500)
+    return false;
+
   uint8_t data[2];
   data[0] = mm & 0xFF;
   data[1] = (mm >> 8) & 0xFF;
   return _sendCommand(CMD_SET_MAX_DIST, data, 2);
 }
 
-bool HLK_LD2413::factoryReset() {
-  return _sendCommand(CMD_FACTORY_RESET, nullptr, 0);
+bool HLK_LD2413::updateThreshold() {
+  if (!_isConfigMode)
+    return false;
+
+  return _sendCommand(CMD_UPDATE_THRESHOLD, nullptr, 0);
+}
+
+bool HLK_LD2413::readVersion(uint16_t &major, uint16_t &minor,
+                             uint16_t &patch) {
+  uint8_t response[8];
+  uint16_t responseLen = sizeof(response);
+
+  bool success = _sendCommand(CMD_READ_VER, nullptr, 0, 1000,
+                              response, &responseLen);
+
+  if (!success || responseLen != sizeof(response))
+    return false;
+
+  major = (uint16_t)response[2] |
+          ((uint16_t)response[3] << 8);
+  minor = (uint16_t)response[4] |
+          ((uint16_t)response[5] << 8);
+  patch = (uint16_t)response[6] |
+          ((uint16_t)response[7] << 8);
+
+  return true;
 }
 
 void HLK_LD2413::_debugPrint(const String &msg) {

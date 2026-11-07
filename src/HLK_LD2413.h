@@ -40,18 +40,13 @@ public:
     bool setReportPeriod(uint16_t periodMs); // 50-1000ms
     bool setMinDistance(uint16_t distMm); // 150-10500mm
     bool setMaxDistance(uint16_t distMm); // 150-10500mm
-    bool setThreshold(uint16_t threshold); // Threshold setting
+    bool updateThreshold();
     
     // Configuration - Getters (Require Config Mode)
     // These update internal state which can then be read, or return values by ref if preferred.
     // implementing as simple queries that return valid data or -1/empty on failure.
     int16_t readReportPeriod();
-    int16_t readMinDistance();
-    int16_t readMaxDistance();
     String readVersion();
-
-    // Utils
-    bool factoryReset();
 
 private:
     Stream *_serial;
