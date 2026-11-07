@@ -191,7 +191,8 @@ float HLK_LD2413::getDistanceM() { return _lastDistance / 1000.0f; }
 // ================= COMMANDS =================
 
 bool HLK_LD2413::_sendCommand(uint16_t cmd, const uint8_t *data,
-                              uint16_t dataLen, uint16_t timeoutMs) {
+                              uint16_t dataLen, uint16_t timeoutMs,
+                              uint8_t *outData, uint16_t *outLen) {
   if (!_serial)
     return false;
 
@@ -218,101 +219,136 @@ bool HLK_LD2413::_sendCommand(uint16_t cmd, const uint8_t *data,
   _serial->write(CONFIG_FOOTER, 4);
 
   // Wait for ACK
-  return _waitForAck(cmd, timeoutMs);
+  return _waitForAck(cmd, timeoutMs, outData, outLen);
 }
 
 // Extremely simple blocking waiter that looks for FD FC FB FA ... ACK_CMD ...
-bool HLK_LD2413::_waitForAck(uint16_t cmd, uint16_t timeoutMs, uint8_t *outData,
-                             uint16_t *outLen) {
+bool HLK_LD2413::_waitForAck(uint16_t cmd, uint16_t timeoutMs,
+                             uint8_t *outData, uint16_t *outLen) {
+  if (!_serial)
+    return false;
+
   unsigned long start = millis();
-  uint8_t buf[256];
 
-  // Look for FD (header start)
-  // Then parse full frame...
-  // This is a simplified local parser to avoid messing with the main state
-  // machine during config Ideally we should share logic but for clarity and
-  // robustness in config mode:
-
-  int state = 0; // 0..3 Header, 4..5 Len, 6..N Payload, etc.
-  uint16_t len = 0;
-  uint16_t payloadIdx = 0;
-
-  while (millis() - start < timeoutMs) {
-    if (_serial->available()) {
-      uint8_t b = _serial->read();
-      switch (state) {
-      case 0:
-        if (b == 0xFD)
-          state++;
-        break;
-      case 1:
-        if (b == 0xFC)
-          state++;
-        else
-          state = 0;
-        break;
-      case 2:
-        if (b == 0xFB)
-          state++;
-        else
-          state = 0;
-        break;
-      case 3:
-        if (b == 0xFA)
-          state++;
-        else
-          state = 0;
-        break;
-
-      case 4:
-        len = b;
-        state++;
-        break;
-      case 5:
-        len |= (b << 8);
-        state++;
-        payloadIdx = 0;
-        break;
-
-      case 6:
-        if (payloadIdx < len) {
-          buf[payloadIdx++] = b;
+  // Read one byte while respecting the overall timeout.
+  auto readByte = [&](uint8_t &value) -> bool {
+    while (millis() - start < timeoutMs) {
+      if (_serial->available()) {
+        int b = _serial->read();
+        if (b >= 0) {
+          value = (uint8_t)b;
+          return true;
         }
-        if (payloadIdx >= len) {
-          // Check footer? For speed, we just check command in payload
-          // Payload: [CMD_L] [CMD_H] [Status/Data...]
-          // ACK CMD is usually CMD | 0x0100 ?? or same CMD?
-          // Manual says: ACK is Command Word. Status 1/0.
-
-          // Let's check first 2 bytes of payload.
-          uint16_t respCmd = buf[0] | (buf[1] << 8);
-
-          // Common Ack pattern for HLK: Response CMD is same as Request,
-          // or sometimes Request + 1 bit.
-          // For LD2413:
-          // "ACK is returned... if success"
-          // Usually returns Status (0x01=Success?)
-
-          if (respCmd == cmd) {
-            // Verify status byte if exists?
-            // Usually buf[2] is status?
-            // Or buf[2] is value?
-            // Let's assume Valid Frame if we got here.
-
-            if (outData && outLen) {
-              memcpy(outData, buf, len);
-              *outLen = len;
-            }
-            return true;
-          } else {
-            // Mismatch cmd, keep looking?
-            state = 0;
-          }
-        }
-        break;
       }
     }
+    return false;
+  };
+
+  while (millis() - start < timeoutMs) {
+    // Find configuration header FD FC FB FA.
+    uint8_t headerState = 0;
+    uint8_t b;
+
+    while (millis() - start < timeoutMs) {
+      if (!readByte(b))
+        return false;
+
+      switch (headerState) {
+      case 0:
+        headerState = (b == 0xFD) ? 1 : 0;
+        break;
+
+      case 1:
+        headerState = (b == 0xFC) ? 2 :
+                      (b == 0xFD) ? 1 : 0;
+        break;
+
+      case 2:
+        headerState = (b == 0xFB) ? 3 : 0;
+        break;
+
+      case 3:
+        headerState = (b == 0xFA) ? 4 : 0;
+        break;
+      }
+
+      if (headerState == 4)
+        break;
+    }
+
+    if (headerState != 4)
+      return false;
+
+    // Read payload length.
+    uint8_t lo, hi;
+    if (!readByte(lo) || !readByte(hi))
+      return false;
+
+    uint16_t len = lo | ((uint16_t)hi << 8);
+    if (len < 2 || len > 256)
+      return false;
+
+    uint8_t response[256];
+    for (uint16_t i = 0; i < len; i++) {
+      if (!readByte(response[i]))
+        return false;
+    }
+
+    // Validate complete footer.
+    const uint8_t expectedFooter[4] = {0x04, 0x03, 0x02, 0x01};
+    bool validFooter = true;
+
+    for (uint8_t i = 0; i < 4; i++) {
+      if (!readByte(b))
+        return false;
+      if (b != expectedFooter[i])
+        validFooter = false;
+    }
+
+    if (!validFooter)
+      continue;
+
+    // Response command = request command | 0x0100.
+    uint16_t responseCmd =
+        response[0] | ((uint16_t)response[1] << 8);
+
+    if (responseCmd != (cmd | 0x0100))
+      continue;
+
+    // Read-period response contains a 4-byte value,
+    // not a normal 2-byte execution status.
+    if (cmd == CMD_READ_PERIOD) {
+      if (len != 6)
+        return false;
+    }
+    // Firmware version response also has its own format.
+    else if (cmd == CMD_READ_VER) {
+      if (len < 4)
+        return false;
+    }
+    else {
+      if (len < 4)
+        return false;
+
+      uint16_t status =
+          response[2] | ((uint16_t)response[3] << 8);
+
+      if (status != 0) {
+        if (_debug) {
+          _debugPrint("Command failed, status: " + String(status));
+        }
+        return false;
+      }
+    }
+
+    if (outData && outLen) {
+      memcpy(outData, response, len);
+      *outLen = len;
+    }
+
+    return true;
   }
+
   return false;
 }
 
